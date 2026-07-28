@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+  <h2 id="status">Creating tracker &hellip; <span class="pill" style="background:#ffe9d6;color:#b34700">DEMO — no SharePoint write</span></h2>
+  <pre class="log" id="log"></pre>
+  <p id="actions" style="display:none">
+    <a class="btn" href="/demo/{{ draft_id }}/site">Open the tracker site (demo)</a>
+    <a class="btn secondary" href="/">Start over</a>
+  </p>
+</div>
+<script>
+const lines = {{ log | tojson }};
+let i = 0;
+function step() {
+  if (i < lines.length) {
+    document.getElementById("log").textContent += lines[i] + "\n";
+    i++;
+    setTimeout(step, i === lines.length ? 400 : 350);
+  } else {
+    const s = document.getElementById("status");
+    s.innerHTML = 'Done — tracker created <span class="pill" style="background:#ffe9d6;color:#b34700">DEMO</span>';
+    s.className = "ok";
+    document.getElementById("actions").style.display = "block";
+  }
+}
+step();
+</script>
+{% endblock %}

@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="steps">1 Choose tracker &rsaquo; <b>2 Review columns</b> &rsaquo; 3 Create &amp; migrate</div>
+
+<form action="/save/{{ draft_id }}" method="post">
+<div class="card">
+  <h2>Project name</h2>
+  <input type="text" name="project" value="{{ project }}" required>
+  {% if skipped %}
+  <p class="muted">Sheets skipped (reports / helpers / no data):
+    {% for s in skipped %}<span class="pill">{{ s }}</span>{% endfor %}</p>
+  {% endif %}
+</div>
+
+{% for lst in lists %}
+<div class="card">
+  <h3>
+    <input type="checkbox" name="list-{{ lst.i }}-include" checked>
+    List: <input type="text" name="list-{{ lst.i }}-name" value="{{ lst.displayName }}" style="width:280px">
+    <span class="muted">from sheet "{{ lst.sheet }}"{% if lst.rows is not none %}, {{ lst.rows }} data rows{% endif %}</span>
+  </h3>
+  {% if lst.derived %}
+  <p class="muted">Formula columns excluded (become views/Power&nbsp;BI, not stored data):
+    {% for d in lst.derived %}<span class="pill">{{ d }}</span>{% endfor %}</p>
+  {% endif %}
+  <table>
+    <tr><th>Keep</th><th>Excel header</th><th>Column name</th><th>Type</th><th>Dropdown values (one per line)</th></tr>
+    {% for c in lst.columns %}
+    <tr>
+      <td><input type="checkbox" name="col-{{ lst.i }}-{{ c.i }}-include" checked></td>
+      <td class="muted">{{ c.header }}{% if c.filled is not none %}<br><small>{{ c.filled }} filled</small>{% endif %}</td>
+      <td><input type="text" name="col-{{ lst.i }}-{{ c.i }}-name" value="{{ c.name }}"></td>
+      <td>
+        <select name="col-{{ lst.i }}-{{ c.i }}-type">
+          {% for t in type_options %}
+          <option value="{{ t }}" {% if t == c.type %}selected{% endif %}>{{ t }}</option>
+          {% endfor %}
+        </select>
+      </td>
+      <td><textarea name="col-{{ lst.i }}-{{ c.i }}-choices" rows="{% if c.type == 'choice' %}3{% else %}1{% endif %}">{{ c.choices }}</textarea></td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+{% endfor %}
+
+<p>
+  <button class="btn" type="submit">Continue {% if has_source %}(preview data){% endif %}</button>
+  <a class="btn secondary" href="/">Start over</a>
+</p>
+</form>
+{% endblock %}

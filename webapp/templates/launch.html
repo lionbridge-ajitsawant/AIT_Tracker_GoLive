@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="steps">1 Choose tracker &rsaquo; 2 Review columns &rsaquo; <b>3 Create &amp; migrate</b></div>
+
+<div class="card">
+  <h2>Preview — {{ project }}</h2>
+  <table>
+    <tr><th>List</th><th>Items to migrate</th><th>Sample</th></tr>
+    {% for p in preview %}
+    <tr>
+      <td>{{ p.name }}</td>
+      <td>{{ p.count }}</td>
+      <td class="muted">{% for s in p.sample %}<div>{{ s }}</div>{% endfor %}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  <p class="muted">Nothing has been created yet. This is the dry-run result of reading and
+     cleaning your workbook (blank rows skipped, status spellings normalized).</p>
+</div>
+
+<div class="card">
+  <h2>Demo mode — no SharePoint needed</h2>
+  <p class="muted">Simulates list creation and migration locally and opens a SharePoint-style
+     tracker site with this data. Nothing is written anywhere. For presentations.</p>
+  <form action="/demo/{{ draft_id }}" method="post">
+    <button class="btn" type="submit" style="background:#ff6900">Create tracker — DEMO</button>
+  </form>
+</div>
+
+<div class="card">
+  <h2>Target SharePoint site</h2>
+  <form action="/run/{{ draft_id }}" method="post">
+    <label>Site URL (ask once per project; e.g. https://yourtenant.sharepoint.com/sites/ProjectX)</label>
+    <input type="url" name="site_url" placeholder="https://...sharepoint.com/sites/..." required>
+    <p><label>Your name (PM) — recorded in the cross-project registry (optional)</label>
+    <input type="text" name="pm" placeholder="e.g. Juan Herrera"></p>
+    {% if has_source %}
+    <p><label><input type="checkbox" name="migrate" checked> Migrate the workbook data after creating the lists</label></p>
+    {% endif %}
+    <p><button class="btn" type="submit">Create tracker</button>
+       <a class="btn secondary" href="/">Cancel</a></p>
+  </form>
+  <p class="muted">If you are not signed in yet, the next screen shows a code and a
+     microsoft.com/devicelogin link — sign in with your normal work account.</p>
+</div>
+{% endblock %}

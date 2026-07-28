@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="steps"><b>1 Choose tracker</b> &rsaquo; 2 Review columns &rsaquo; 3 Create &amp; migrate</div>
+
+<div class="card">
+  <h2>Create a new project tracker</h2>
+  <p class="muted">Pick a ready-made template below, or upload an existing Excel tracker.
+     In the next steps you review the columns and create the tracker in SharePoint —
+     no spreadsheets to fight, no IT ticket.</p>
+
+  <form action="/template" method="post" enctype="multipart/form-data">
+    {% for t in projects %}
+    <label class="tpl">
+      <input type="radio" name="template" value="{{ t.stem }}" {% if loop.first %}checked{% endif %}>
+      <span class="tpl-body">
+        <span class="tpl-name">{{ t.name }}</span>
+        <span class="tpl-blurb">{{ t.blurb }}</span>
+        {% if t.lists %}<span class="tpl-lists">Lists: {{ t.lists }}</span>{% endif %}
+      </span>
+    </label>
+    {% endfor %}
+    <p style="margin-top:14px"><label class="muted">Existing data to migrate (optional)</label>
+    <input type="file" name="workbook" accept=".xlsx"></p>
+    <p><button class="btn" type="submit">Use this template &rarr;</button></p>
+  </form>
+</div>
+
+<div class="card">
+  <h2>&hellip; or start from your project's own Excel tracker</h2>
+  <p class="muted">Upload the workbook a project uses today (or its empty template).
+     The wizard detects the sheets, columns, types and dropdown values automatically.</p>
+  <form action="/analyze" method="post" enctype="multipart/form-data">
+    <input type="file" name="workbook" accept=".xlsx" required>
+    <p><button class="btn secondary" type="submit">Analyze workbook</button></p>
+  </form>
+</div>
+
+<div class="card info">
+  <h2>What you get with every tracker</h2>
+  <p class="muted">Beyond the list itself, each tracker plugs into shared automation —
+     you don't set any of this up per project:</p>
+  <ul class="auto">
+    <li><b>Auto-registered</b> in the cross-project hub, so leadership dashboards and
+        the flows below see it the moment it's created.</li>
+    <li><b>Overdue / at-risk digest</b> — owners get a daily note of items past due and not delivered.</li>
+    <li><b>Quality rollup</b> — QA scores roll up to a Green/Amber/Red on the leadership board.</li>
+    <li><b>Risk &amp; status alerts</b> — built once centrally, applied to all trackers.</li>
+  </ul>
+</div>
+
+{% if hub %}
+<div class="card">
+  <h2 class="muted" style="font-size:14px">Admin only — one-time setup</h2>
+  <form action="/template" method="post" enctype="multipart/form-data">
+    {% for t in hub %}
+    <label class="tpl">
+      <input type="radio" name="template" value="{{ t.stem }}" checked>
+      <span class="tpl-body">
+        <span class="tpl-name">{{ t.name }}</span>
+        <span class="tpl-blurb">{{ t.blurb }}</span>
+      </span>
+    </label>
+    {% endfor %}
+    <p><button class="btn secondary" type="submit">Set up hub</button></p>
+  </form>
+</div>
+{% endif %}
+
+<style>
+  .tpl { display:flex; gap:12px; align-items:flex-start; border:1px solid var(--line);
+         border-radius:8px; padding:12px 14px; margin-bottom:8px; cursor:pointer; }
+  .tpl:hover { border-color:var(--accent); background:#fafcff; }
+  .tpl input { margin-top:3px; }
+  .tpl-body { display:flex; flex-direction:column; gap:2px; }
+  .tpl-name { font-weight:600; font-size:14px; }
+  .tpl-blurb { font-size:12.5px; color:#56657a; }
+  .tpl-lists { font-size:11.5px; color:#8a98a8; margin-top:2px; }
+  .card.info { background:#f3f8ff; border-color:#cfe0f5; }
+  ul.auto { margin:6px 0 0; padding-left:18px; }
+  ul.auto li { font-size:12.5px; color:#3a4a5c; margin-bottom:5px; }
+</style>
+{% endblock %}

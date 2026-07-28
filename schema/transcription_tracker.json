@@ -1,0 +1,154 @@
+{
+  "project": "Transcription NewWorkflow",
+  "serviceType": "Transcription",
+  "templateInfo": {
+    "kind": "project",
+    "friendlyName": "Transcription / Speech project",
+    "blurb": "Audio files moving through transcription, validation, QC and delivery. Best for speech and transcription work.",
+    "lists": "Tracking, Partners, QA Issues, Issue Log"
+  },
+  "normalize": {
+    "feedback recieved": "Feedback Received",
+    "rework delivered, pending review": "Rework Delivered - Pending Review",
+    "not completed in jahtai": "Not Completed in JahtAI",
+    "not completed in jhatai": "Not Completed in JahtAI",
+    "airline travel": "Airline Travels",
+    "airline travels": "Airline Travels",
+    "account mgmt": "Account Management",
+    "e-com": "E-COM",
+    "sent to rework": "Sent for Rework",
+    "completed, pending po": "Completed - Pending PO",
+    "8khz": "8khz",
+    "16khz": "16khz"
+  },
+  "lists": [
+    {
+      "displayName": "Tracking",
+      "description": "Main task tracker - one item per audio file/script. Replaces the TRACKING sheet.",
+      "source": {
+        "sheet": "TRACKING",
+        "firstDataRow": 5,
+        "titleCol": 4,
+        "requireAny": [0, 4],
+        "map": [
+          [0, "Batch"], [1, "AudioType"], [2, "Domain"], [3, "Language"],
+          [5, "DurationSecs"], [7, "AudioStatus"], [8, "DeliveryDate"],
+          [9, "DeliveryStatus"], [10, "ReadyForTranscription"], [11, "Subfolder"],
+          [12, "JSONBatch"], [13, "TranscriberName"], [14, "TranscriptionStatus"],
+          [15, "TranscriptionComments"], [16, "CompletedBy"], [18, "Link"],
+          [19, "PartnerEmail"], [20, "HODate"], [21, "DueDate"], [22, "HBDate"],
+          [23, "Owner"], [24, "ValidationStatus"], [25, "ValidationComments"],
+          [26, "QCStatus"], [27, "NativeQCStatus"], [28, "QAComments"],
+          [32, "Currency"], [33, "EffortHrs"], [34, "PONumber"],
+          [35, "POComments"], [36, "CustomerDeliveryTimeline"]
+        ]
+      },
+      "columns": [
+        { "name": "Batch", "indexed": true, "text": {} },
+        { "name": "AudioType", "choice": { "allowTextEntry": false, "choices": ["8khz", "16khz"], "displayAs": "dropDownMenu" } },
+        { "name": "Domain", "choice": { "allowTextEntry": true, "choices": ["Account Management", "Airline Travels", "Banking", "Billing Inquiries", "E-COM", "Finance", "Healthcare", "Insurance", "IT", "Product Info", "Tech Support"], "displayAs": "dropDownMenu" } },
+        { "name": "Language", "indexed": true, "choice": { "allowTextEntry": true, "choices": ["da-DK", "es-US", "hi-IN", "it-IT", "ja-JP", "ko-KR", "no-NO", "th-TH", "tl-PH", "tr-TR", "zh-CN", "zh-HK", "zh-TW"], "displayAs": "dropDownMenu" } },
+        { "name": "DurationSecs", "number": { "decimalPlaces": "automatic" } },
+        { "name": "AudioStatus", "indexed": true, "choice": { "allowTextEntry": true, "choices": ["Pending Review", "Feedback Received", "Rework", "Rework Delivered - Pending Review", "Approved"], "displayAs": "dropDownMenu" } },
+        { "name": "DeliveryDate", "dateTime": { "format": "dateOnly" } },
+        { "name": "DeliveryStatus", "choice": { "allowTextEntry": true, "choices": ["Ready for Delivery", "Delivered", "Delivered in SGMT", "Not Completed in JahtAI"], "displayAs": "dropDownMenu" } },
+        { "name": "ReadyForTranscription", "choice": { "allowTextEntry": true, "choices": ["Yes", "No", "No JSON Required"], "displayAs": "dropDownMenu" } },
+        { "name": "Subfolder", "text": {} },
+        { "name": "JSONBatch", "number": { "decimalPlaces": "none" } },
+        { "name": "TranscriberName", "indexed": true, "text": {} },
+        { "name": "TranscriptionStatus", "indexed": true, "choice": { "allowTextEntry": true, "choices": ["Completed", "Mono Files", "Skipped", "No JSON Required", "Sent for Rework"], "displayAs": "dropDownMenu" } },
+        { "name": "TranscriptionComments", "text": { "allowMultipleLines": true } },
+        { "name": "CompletedBy", "text": {} },
+        { "name": "Link", "text": {} },
+        { "name": "PartnerEmail", "text": {} },
+        { "name": "HODate", "dateTime": { "format": "dateOnly" } },
+        { "name": "DueDate", "dateTime": { "format": "dateOnly" } },
+        { "name": "HBDate", "dateTime": { "format": "dateOnly" } },
+        { "name": "Owner", "text": {} },
+        { "name": "ValidationStatus", "indexed": true, "choice": { "allowTextEntry": true, "choices": ["HO Sent", "FU Sent", "In Rework", "Rework Done", "Sent for Rework", "Reassigned", "Please Reassign", "Please Assign", "Completed", "Completed - Pending PO"], "displayAs": "dropDownMenu" } },
+        { "name": "ValidationComments", "text": { "allowMultipleLines": true } },
+        { "name": "QCStatus", "indexed": true, "choice": { "allowTextEntry": true, "choices": ["Ready for QC", "In Progress", "Send to Rework", "Audio Issues", "Please Provide Missing Info", "Ready for Delivery", "Delivered"], "displayAs": "dropDownMenu" } },
+        { "name": "NativeQCStatus", "choice": { "allowTextEntry": true, "choices": ["Done", "Skipped"], "displayAs": "dropDownMenu" } },
+        { "name": "QAComments", "text": { "allowMultipleLines": true } },
+        { "name": "Currency", "choice": { "allowTextEntry": true, "choices": ["USD", "EUR"], "displayAs": "dropDownMenu" } },
+        { "name": "EffortHrs", "number": { "decimalPlaces": "automatic" } },
+        { "name": "PONumber", "text": {} },
+        { "name": "POComments", "text": { "allowMultipleLines": true } },
+        { "name": "CustomerDeliveryTimeline", "dateTime": { "format": "dateOnly" } }
+      ]
+    },
+    {
+      "displayName": "Partners",
+      "description": "Transcriber / partner roster with rates and capacity. Replaces the Transcribers sheet.",
+      "source": {
+        "sheet": "Transcribers",
+        "firstDataRow": 3,
+        "titleCol": 1,
+        "requireAny": [1],
+        "map": [
+          [0, "Language"], [2, "Email"], [3, "PartnerType"], [4, "Availability"],
+          [8, "ConfirmedCapacity"], [16, "Comment"], [17, "CDBID"],
+          [18, "Currency"], [19, "Rate"]
+        ]
+      },
+      "columns": [
+        { "name": "Language", "indexed": true, "text": {} },
+        { "name": "Email", "text": {} },
+        { "name": "PartnerType", "choice": { "allowTextEntry": true, "choices": ["Freelancer", "Agency", "Internal"], "displayAs": "dropDownMenu" } },
+        { "name": "Availability", "text": {} },
+        { "name": "ConfirmedCapacity", "text": {} },
+        { "name": "Comment", "text": { "allowMultipleLines": true } },
+        { "name": "CDBID", "text": {} },
+        { "name": "Currency", "choice": { "allowTextEntry": true, "choices": ["USD", "EUR"], "displayAs": "dropDownMenu" } },
+        { "name": "Rate", "number": { "decimalPlaces": "automatic" } }
+      ]
+    },
+    {
+      "displayName": "QA Issues",
+      "description": "Per-file QA queries raised during validation. Replaces the QA_Issues sheet.",
+      "source": {
+        "sheet": "QA_Issues",
+        "firstDataRow": 2,
+        "titleCol": 5,
+        "requireAny": [0, 3, 5],
+        "map": [
+          [0, "IssueDate"], [1, "Language"], [2, "PartnerEmail"], [3, "Query"],
+          [4, "AudioLink"], [6, "Owner"], [7, "Status"], [8, "TimeSpent"], [9, "Comments"]
+        ]
+      },
+      "columns": [
+        { "name": "IssueDate", "dateTime": { "format": "dateOnly" } },
+        { "name": "Language", "indexed": true, "text": {} },
+        { "name": "PartnerEmail", "text": {} },
+        { "name": "Query", "text": { "allowMultipleLines": true } },
+        { "name": "AudioLink", "text": {} },
+        { "name": "Owner", "text": {} },
+        { "name": "Status", "choice": { "allowTextEntry": true, "choices": ["Open", "In Progress", "Resolved"], "displayAs": "dropDownMenu" } },
+        { "name": "TimeSpent", "text": {} },
+        { "name": "Comments", "text": { "allowMultipleLines": true } }
+      ]
+    },
+    {
+      "displayName": "Issue Log",
+      "description": "Project-level blockers and escalations. Replaces the Issue_Log sheet.",
+      "source": {
+        "sheet": "Issue_Log",
+        "firstDataRow": 2,
+        "titleCol": 2,
+        "requireAny": [2],
+        "map": [
+          [0, "Timeline"], [1, "Language"], [3, "Owner"], [4, "Status"],
+          [5, "TimeSpent"], [6, "Response"]
+        ]
+      },
+      "columns": [
+        { "name": "Timeline", "text": {} },
+        { "name": "Language", "text": {} },
+        { "name": "Owner", "text": {} },
+        { "name": "Status", "choice": { "allowTextEntry": true, "choices": ["Open", "In Progress", "Resolved"], "displayAs": "dropDownMenu" } },
+        { "name": "TimeSpent", "text": {} },
+        { "name": "Response", "text": { "allowMultipleLines": true } }
+      ]
+    }
+  ]
+}

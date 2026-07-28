@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+  <h2 id="status">Working &hellip;</h2>
+  <pre class="log" id="log"></pre>
+  <p id="actions" style="display:none"><a class="btn" href="/">Set up another tracker</a></p>
+</div>
+<script>
+async function poll() {
+  const r = await fetch("/progress/{{ job_id }}/log");
+  const d = await r.json();
+  document.getElementById("log").textContent = d.log.join("\n");
+  if (d.done) {
+    const s = document.getElementById("status");
+    s.textContent = d.ok ? "Done — tracker created" : "Failed — see log";
+    s.className = d.ok ? "ok" : "err";
+    document.getElementById("actions").style.display = "block";
+  } else {
+    setTimeout(poll, 1500);
+  }
+}
+poll();
+</script>
+{% endblock %}

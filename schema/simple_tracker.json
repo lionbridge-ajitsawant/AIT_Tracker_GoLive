@@ -1,0 +1,139 @@
+{
+  "project": "Standard Tracker (Simple template)",
+  "serviceType": "Other",
+  "templateInfo": {
+    "kind": "project",
+    "friendlyName": "Standard project (Simple)",
+    "blurb": "Lightweight vendor workflow: heads-up, pilot, main part, Q&A and POs. Good default for most new projects.",
+    "lists": "Heads-Up, Pilot, Main Part, Q and A, POs"
+  },
+  "normalize": {},
+  "lists": [
+    {
+      "displayName": "Heads-Up",
+      "description": "Partner availability heads-up. Replaces the HEADS-UP sheet.",
+      "source": {
+        "sheet": "HEADS-UP",
+        "firstDataRow": 2,
+        "titleCol": 0,
+        "requireAny": [0],
+        "map": [
+          [1, "CDBID"], [2, "Email"], [3, "HUSentOn"], [4, "Availability"],
+          [5, "HUComments"], [6, "Candidates"]
+        ]
+      },
+      "columns": [
+        { "name": "CDBID", "text": {} },
+        { "name": "Email", "text": {} },
+        { "name": "HUSentOn", "text": {} },
+        { "name": "Availability", "indexed": true, "choice": { "allowTextEntry": true, "choices": ["Yes", "No", "No reply"], "displayAs": "dropDownMenu" } },
+        { "name": "HUComments", "text": { "allowMultipleLines": true, "appendChangesToExistingText": true } },
+        { "name": "Candidates", "choice": { "allowTextEntry": true, "choices": ["P1", "P2", "P3"], "displayAs": "dropDownMenu" } }
+      ]
+    },
+    {
+      "displayName": "Pilot",
+      "description": "Pilot phase per partner. Replaces the PILOT sheet. (Minutes-per-row is a calculated column to add in list settings: =(TimeSpentHours-0.5)/NumberOfTasks*60)",
+      "source": {
+        "sheet": "PILOT",
+        "firstDataRow": 2,
+        "titleCol": 0,
+        "requireAny": [0],
+        "map": [
+          [1, "CDBID"], [2, "Email"], [3, "PilotSentOn"], [4, "PilotComments"],
+          [5, "DeadlineFromPartner"], [6, "WorkerID"], [7, "NumberOfTasks"],
+          [8, "TimeSpentHours"], [10, "DeadlineToCustomer"], [11, "Accuracy"]
+        ]
+      },
+      "columns": [
+        { "name": "CDBID", "text": {} },
+        { "name": "Email", "text": {} },
+        { "name": "PilotSentOn", "text": {} },
+        { "name": "PilotComments", "text": { "allowMultipleLines": true, "appendChangesToExistingText": true } },
+        { "name": "DeadlineFromPartner", "dateTime": { "format": "dateOnly" } },
+        { "name": "WorkerID", "text": {} },
+        { "name": "NumberOfTasks", "number": { "decimalPlaces": "none" } },
+        { "name": "TimeSpentHours", "number": { "decimalPlaces": "automatic" } },
+        { "name": "DeadlineToCustomer", "dateTime": { "format": "dateOnly" } },
+        { "name": "Accuracy", "indexed": true, "choice": { "allowTextEntry": true, "choices": ["PASS", "FAIL"], "displayAs": "dropDownMenu" } }
+      ]
+    },
+    {
+      "displayName": "Main Part",
+      "description": "Main production phase per partner. Replaces the MAIN_PART sheet.",
+      "source": {
+        "sheet": "MAIN_PART",
+        "firstDataRow": 2,
+        "titleCol": 0,
+        "requireAny": [0],
+        "map": [
+          [1, "CDBID"], [2, "Email"], [3, "MainPartSentOn"], [4, "MainPartComments"],
+          [5, "DeadlineFromPartner"], [6, "WorkerID"], [7, "NumberOfTasks"],
+          [8, "TimeSpentHours"], [10, "DeadlineToCustomer"]
+        ]
+      },
+      "columns": [
+        { "name": "CDBID", "text": {} },
+        { "name": "Email", "text": {} },
+        { "name": "MainPartSentOn", "text": {} },
+        { "name": "MainPartComments", "text": { "allowMultipleLines": true, "appendChangesToExistingText": true } },
+        { "name": "DeadlineFromPartner", "dateTime": { "format": "dateOnly" } },
+        { "name": "WorkerID", "text": {} },
+        { "name": "NumberOfTasks", "number": { "decimalPlaces": "none" } },
+        { "name": "TimeSpentHours", "number": { "decimalPlaces": "automatic" } },
+        { "name": "DeadlineToCustomer", "dateTime": { "format": "dateOnly" } }
+      ]
+    },
+    {
+      "displayName": "Q and A",
+      "description": "Partner questions and answers. Replaces the Q&A sheet.",
+      "source": {
+        "sheet": "Q&A",
+        "firstDataRow": 2,
+        "titleCol": 1,
+        "requireAny": [1],
+        "map": [
+          [0, "RaisedBy"], [2, "Answer"], [3, "AnsweredBy"], [4, "PendingAction"]
+        ]
+      },
+      "columns": [
+        { "name": "RaisedBy", "text": {} },
+        { "name": "Answer", "text": { "allowMultipleLines": true } },
+        { "name": "AnsweredBy", "text": {} },
+        { "name": "PendingAction", "text": { "allowMultipleLines": true } }
+      ]
+    },
+    {
+      "displayName": "POs",
+      "description": "Purchase orders per handoff/partner. Replaces the POs sheet. (PO Value = Rate * Hours: add as calculated column in list settings)",
+      "source": {
+        "sheet": "POs",
+        "firstDataRow": 2,
+        "titleCol": 1,
+        "requireAny": [0, 1],
+        "map": [
+          [0, "Handoff"], [2, "PartnerName"], [3, "CDBID"], [4, "Email"],
+          [5, "Rate"], [6, "PriceList"], [7, "Activity"], [8, "UOMType"],
+          [9, "Hours"], [11, "GeminiNumber"], [12, "PONumber"],
+          [13, "POCreatedBy"], [14, "Status"], [15, "Comment"]
+        ]
+      },
+      "columns": [
+        { "name": "Handoff", "indexed": true, "choice": { "allowTextEntry": true, "choices": ["Heads-Up", "Pilot", "Main Part"], "displayAs": "dropDownMenu" } },
+        { "name": "PartnerName", "text": {} },
+        { "name": "CDBID", "text": {} },
+        { "name": "Email", "text": {} },
+        { "name": "Rate", "number": { "decimalPlaces": "automatic" } },
+        { "name": "PriceList", "text": {} },
+        { "name": "Activity", "text": {} },
+        { "name": "UOMType", "text": {} },
+        { "name": "Hours", "number": { "decimalPlaces": "automatic" } },
+        { "name": "GeminiNumber", "text": {} },
+        { "name": "PONumber", "text": {} },
+        { "name": "POCreatedBy", "text": {} },
+        { "name": "Status", "indexed": true, "choice": { "allowTextEntry": true, "choices": ["Pending", "Created", "Approved", "Closed"], "displayAs": "dropDownMenu" } },
+        { "name": "Comment", "text": { "allowMultipleLines": true } }
+      ]
+    }
+  ]
+}

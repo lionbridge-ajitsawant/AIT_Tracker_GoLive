@@ -1,0 +1,92 @@
+{
+  "project": "AIT Master Hub (cross-project lists - provision ONCE on the hub site)",
+  "templateInfo": {
+    "kind": "hub",
+    "friendlyName": "Cross-project Hub (admin — set up once)",
+    "blurb": "The shared registry, QA and risk lists that power dashboards and automation across ALL trackers. Provision once per org, not per project.",
+    "lists": "AIT Projects, Resources Master, QA Records, Risk Log"
+  },
+  "normalize": {},
+  "lists": [
+    {
+      "displayName": "AIT Projects",
+      "description": "Master register of all AIT projects across clients. Feeds the cumulative status board (status, budget, TAT, quality RAG).",
+      "source": { "sheet": "Projects", "firstDataRow": 2, "titleCol": 0, "requireAny": [0], "map": [] },
+      "columns": [
+        { "name": "Client", "indexed": true, "text": {} },
+        { "name": "ServiceType", "indexed": true, "choice": { "allowTextEntry": true, "choices": ["Transcription", "Annotation", "Code-Switching QA", "Translation", "Data Collection", "Other"], "displayAs": "dropDownMenu" } },
+        { "name": "ProjectStatus", "indexed": true, "choice": { "allowTextEntry": false, "choices": ["Pipeline", "Setup", "Active", "On Hold", "Completed", "Cancelled"], "displayAs": "dropDownMenu" } },
+        { "name": "PMOwner", "text": {} },
+        { "name": "StartDate", "dateTime": { "format": "dateOnly" } },
+        { "name": "EndDate", "dateTime": { "format": "dateOnly" } },
+        { "name": "Budget", "number": { "decimalPlaces": "automatic" } },
+        { "name": "BudgetSpent", "number": { "decimalPlaces": "automatic" } },
+        { "name": "TATStatus", "indexed": true, "choice": { "allowTextEntry": false, "choices": ["On Track", "At Risk", "Delayed"], "displayAs": "dropDownMenu" } },
+        { "name": "QualityRAG", "indexed": true, "choice": { "allowTextEntry": false, "choices": ["Green", "Amber", "Red"], "displayAs": "dropDownMenu" } },
+        { "name": "TrackerSiteURL", "text": {} },
+        { "name": "SLATurnaroundDays", "number": { "decimalPlaces": "automatic" } },
+        { "name": "Languages", "text": {} },
+        { "name": "Notes", "text": { "allowMultipleLines": true, "appendChangesToExistingText": true } }
+      ]
+    },
+    {
+      "displayName": "Resources Master",
+      "description": "Single roster of contributors/partners across all projects. Populated by the intake form (Microsoft Forms + Power Automate), not by copy/paste.",
+      "source": { "sheet": "Resources", "firstDataRow": 2, "titleCol": 0, "requireAny": [0], "map": [] },
+      "columns": [
+        { "name": "Email", "indexed": true, "text": {} },
+        { "name": "Languages", "indexed": true, "text": {} },
+        { "name": "TaskTypes", "text": {} },
+        { "name": "ResourceType", "choice": { "allowTextEntry": true, "choices": ["Freelancer", "Agency", "Internal"], "displayAs": "dropDownMenu" } },
+        { "name": "Rate", "number": { "decimalPlaces": "automatic" } },
+        { "name": "Currency", "choice": { "allowTextEntry": true, "choices": ["USD", "EUR"], "displayAs": "dropDownMenu" } },
+        { "name": "CDBID", "text": {} },
+        { "name": "QualificationStatus", "indexed": true, "choice": { "allowTextEntry": false, "choices": ["Pre-vet", "Quiz Sent", "Qualified", "Active", "Inactive", "Do Not Use"], "displayAs": "dropDownMenu" } },
+        { "name": "GoldenSetScore", "number": { "decimalPlaces": "automatic" } },
+        { "name": "QualifiedDate", "dateTime": { "format": "dateOnly" } },
+        { "name": "Notes", "text": { "allowMultipleLines": true, "appendChangesToExistingText": true } }
+      ]
+    },
+    {
+      "displayName": "QA Records",
+      "description": "One row per QA review/audit event, across all projects. This single list powers every foundational quality KPI: overall score, trends over time, by locale, by task type, coverage, defect categories, rework rate, client acceptance, SLA performance.",
+      "source": { "sheet": "QA", "firstDataRow": 2, "titleCol": 0, "requireAny": [0], "map": [] },
+      "columns": [
+        { "name": "Project", "indexed": true, "text": {} },
+        { "name": "Client", "indexed": true, "text": {} },
+        { "name": "Locale", "indexed": true, "text": {} },
+        { "name": "TaskType", "indexed": true, "choice": { "allowTextEntry": true, "choices": ["Transcription", "Annotation", "Code-Switching QA", "Translation", "Data Collection", "Other"], "displayAs": "dropDownMenu" } },
+        { "name": "ReviewDate", "indexed": true, "dateTime": { "format": "dateOnly" } },
+        { "name": "ReviewType", "choice": { "allowTextEntry": true, "choices": ["Sample QA", "Full Review", "Client Audit", "Golden Set", "Pre-vet"], "displayAs": "dropDownMenu" } },
+        { "name": "Reviewer", "text": {} },
+        { "name": "ResourceEmail", "indexed": true, "text": {} },
+        { "name": "UnitsProduced", "number": { "decimalPlaces": "automatic" } },
+        { "name": "UnitsReviewed", "number": { "decimalPlaces": "automatic" } },
+        { "name": "QAScore", "number": { "decimalPlaces": "automatic" } },
+        { "name": "DefectCategory", "choice": { "allowTextEntry": true, "choices": ["Accuracy", "Completeness", "Formatting", "Terminology", "Guidelines", "Consistency", "Audio/Source Issue", "Other"], "displayAs": "dropDownMenu" } },
+        { "name": "DefectCount", "number": { "decimalPlaces": "none" } },
+        { "name": "ReworkRequired", "choice": { "allowTextEntry": false, "choices": ["Yes", "No"], "displayAs": "dropDownMenu" } },
+        { "name": "ReworkCompletedDate", "dateTime": { "format": "dateOnly" } },
+        { "name": "ClientAccepted", "choice": { "allowTextEntry": false, "choices": ["Accepted", "Rejected", "Pending"], "displayAs": "dropDownMenu" } },
+        { "name": "EstimatedDelivery", "dateTime": { "format": "dateOnly" } },
+        { "name": "ActualDelivery", "dateTime": { "format": "dateOnly" } },
+        { "name": "Comments", "text": { "allowMultipleLines": true } }
+      ]
+    },
+    {
+      "displayName": "Risk Log",
+      "description": "Cross-project risks/delays. Power Automate watches this list (and project DueDates) to send Teams/email notifications.",
+      "source": { "sheet": "Risks", "firstDataRow": 2, "titleCol": 0, "requireAny": [0], "map": [] },
+      "columns": [
+        { "name": "Project", "indexed": true, "text": {} },
+        { "name": "RiskType", "choice": { "allowTextEntry": true, "choices": ["Delay", "Capacity", "Quality", "Budget", "Client", "Tooling", "Other"], "displayAs": "dropDownMenu" } },
+        { "name": "Severity", "indexed": true, "choice": { "allowTextEntry": false, "choices": ["Low", "Medium", "High", "Critical"], "displayAs": "dropDownMenu" } },
+        { "name": "Owner", "text": {} },
+        { "name": "Status", "indexed": true, "choice": { "allowTextEntry": false, "choices": ["Open", "Mitigating", "Resolved", "Accepted"], "displayAs": "dropDownMenu" } },
+        { "name": "RaisedDate", "dateTime": { "format": "dateOnly" } },
+        { "name": "DueDate", "dateTime": { "format": "dateOnly" } },
+        { "name": "Mitigation", "text": { "allowMultipleLines": true, "appendChangesToExistingText": true } }
+      ]
+    }
+  ]
+}

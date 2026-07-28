@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>{{ list_name }} — {{ project }}</title>
+<style>
+  * { box-sizing:border-box; margin:0; }
+  body { font-family:"Segoe UI",system-ui,sans-serif; background:#faf9f8; color:#252423; font-size:13px; }
+  .suite { background:#0b1f3a; color:#fff; padding:7px 16px; font-size:13.5px; display:flex; gap:14px; align-items:center; }
+  .suite .app { font-weight:600; }
+  .suite .crumb { opacity:.8; font-size:12.5px; }
+  .demo-tag { background:#ff6900; color:#fff; border-radius:3px; padding:2px 8px; font-size:11px; font-weight:700; }
+  .suite a { color:#9ec3ec; font-size:12px; margin-left:auto; }
+  .site { background:#fff; border-bottom:1px solid #edebe9; padding:10px 22px 0; }
+  .site h1 { font-size:17px; font-weight:600; color:#0b1f3a; padding-bottom:8px; }
+  .listtabs { background:#fff; padding:0 22px; display:flex; gap:2px; border-bottom:1px solid #edebe9; }
+  .ltab { padding:8px 14px; font-size:12.5px; color:#605e5c; border-bottom:3px solid transparent; text-decoration:none; }
+  .ltab.active { color:#0b6bcb; border-bottom-color:#0b6bcb; font-weight:600; }
+  .ltab .n { background:#f3f2f1; border-radius:8px; padding:1px 7px; font-size:11px; margin-left:4px; }
+  .cmdbar { background:#fff; border-bottom:1px solid #edebe9; padding:6px 22px; display:flex; gap:4px; align-items:center; }
+  .cmd { padding:6px 10px; border-radius:4px; color:#323130; cursor:default; }
+  .cmd.primary { color:#0b6bcb; font-weight:600; }
+  .cmd:hover { background:#f3f2f1; }
+  .viewsel { margin-left:auto; color:#323130; font-weight:600; }
+  table { border-collapse:collapse; width:100%; background:#fff; }
+  th { text-align:left; font-size:11.5px; color:#605e5c; font-weight:600; padding:9px 12px; border-bottom:1px solid #edebe9; white-space:nowrap; }
+  td { padding:6px 12px; border-bottom:1px solid #f3f2f1; white-space:nowrap; max-width:260px; overflow:hidden; text-overflow:ellipsis; }
+  tr.itemrow:hover td { background:#f3f9fd; cursor:pointer; }
+  td.title { color:#0b6bcb; font-weight:500; }
+  select.pill { border:none; border-radius:12px; font-size:12px; font-weight:600; padding:3px 8px; font-family:inherit; cursor:pointer; }
+  .g { background:#dff6dd; color:#107c10; } .a { background:#fff4ce; color:#8a6d00; }
+  .r { background:#fde7e9; color:#a4262c; } .b { background:#deecf9; color:#0b6bcb; }
+  .footer { padding:10px 22px; color:#605e5c; font-size:12px; }
+  /* item panel */
+  #panel { position:fixed; top:0; right:-500px; width:480px; height:100vh; background:#fff;
+           border-left:1px solid #edebe9; box-shadow:-4px 0 14px rgba(0,0,0,.12); transition:right .2s;
+           padding:18px 22px; overflow:auto; }
+  #panel.open { right:0; }
+  #panel h2 { font-size:15px; color:#0b1f3a; padding-bottom:10px; }
+  #panel .x { float:right; cursor:pointer; color:#605e5c; font-size:16px; }
+  #panel .field { padding:7px 0; border-bottom:1px solid #f5f4f3; }
+  #panel .field label { display:block; font-size:11px; color:#605e5c; font-weight:600; }
+  #panel .hist { margin-top:14px; padding-top:10px; border-top:2px solid #edebe9; font-size:12.5px; color:#605e5c; }
+  tr.justadded td { background:#fff8e6; animation:fadein 2.5s; }
+  @keyframes fadein { from { background:#ffe9a8; } to { background:#fff8e6; } }
+  /* new item form panel */
+  #newpanel { position:fixed; top:0; right:-500px; width:480px; height:100vh; background:#fff;
+              border-left:1px solid #edebe9; box-shadow:-4px 0 14px rgba(0,0,0,.12);
+              transition:right .2s; padding:18px 22px; overflow:auto; }
+  #newpanel.open { right:0; }
+  #newpanel h2 { font-size:15px; color:#0b1f3a; padding-bottom:10px; }
+  #newpanel .x { float:right; cursor:pointer; color:#605e5c; font-size:16px; }
+  #newpanel label { display:block; font-size:11.5px; color:#605e5c; font-weight:600; padding:9px 0 3px; }
+  #newpanel input, #newpanel select, #newpanel textarea {
+    width:100%; font:inherit; font-size:13px; padding:6px 8px;
+    border:1px solid #c8c6c4; border-radius:3px; background:#fff; }
+  #newpanel .save { margin-top:16px; background:#0b6bcb; color:#fff; border:none;
+    border-radius:4px; padding:9px 22px; font-size:13.5px; font-weight:600; cursor:pointer; }
+  #newpanel .hint { font-size:11px; color:#a19f9d; padding-top:8px; }
+</style>
+</head>
+<body>
+<div class="suite"><span class="app">SharePoint</span>
+  <span class="crumb">AIT Projects &rsaquo; {{ project }}</span>
+  <span class="demo-tag">DEMO — local simulation</span>
+  <a href="/">&larr; back to wizard</a></div>
+<div class="site"><h1>{{ project }}</h1></div>
+<div class="listtabs">
+  {% for i, name, n in tabs %}
+  <a class="ltab {% if i == li %}active{% endif %}" href="/demo/{{ draft_id }}/site/{{ i }}">{{ name }}<span class="n">{{ n }}</span></a>
+  {% endfor %}
+</div>
+<div class="cmdbar">
+  <span class="cmd primary" style="cursor:pointer" onclick="openNew()">+ New</span>
+  <span class="cmd">&#9998; Edit in grid view</span>
+  <span class="cmd">&#8645; Export</span>
+  <span class="cmd">&#9889; Automate</span>
+  <span class="cmd">&#8943;</span>
+  <span class="viewsel">All Items &#9662;</span>
+</div>
+<table>
+  <tr>
+    <th>Title</th>
+    {% for c in col_names %}<th>{{ c }} &#9662;</th>{% endfor %}
+  </tr>
+  {% for row in rows %}
+  <tr class="itemrow {% if added and loop.first %}justadded{% endif %}" onclick='openPanel({{ row.fields | tojson }})'>
+    <td class="title">{{ row.title }}</td>
+    {% for cell in row.cells %}
+    <td>
+      {% if cell.kind == 'choice' %}
+      <select class="pill {{ cell.cls }}" onclick="event.stopPropagation()" onchange="recolor(this)">
+        {% for ch in cell.choices %}
+        <option {% if ch == cell.value %}selected{% endif %}>{{ ch }}</option>
+        {% endfor %}
+      </select>
+      {% elif cell.kind == 'text' %}{{ cell.value }}{% endif %}
+    </td>
+    {% endfor %}
+  </tr>
+  {% endfor %}
+</table>
+<div class="footer">
+  {% if total > rows|length %}showing {{ rows|length }} of {{ total }} items &nbsp;·&nbsp;{% else %}{{ total }} items &nbsp;·&nbsp;{% endif %}
+  every change saves instantly, no file sync — dropdowns enforce clean statuses (try one)
+</div>
+
+<div id="panel">
+  <span class="x" onclick="document.getElementById('panel').classList.remove('open')">✕</span>
+  <h2 id="p-title"></h2>
+  <div id="p-fields"></div>
+  <div class="hist"><b>Version history</b><br>
+    1.0 &nbsp;·&nbsp; just now &nbsp;·&nbsp; Migrated from Excel by the Tracker Wizard<br>
+    <i>(in the real tracker, every later edit appears here with author and time)</i></div>
+</div>
+
+<div id="newpanel">
+  <span class="x" onclick="document.getElementById('newpanel').classList.remove('open')">✕</span>
+  <h2>New item — {{ list_name }}</h2>
+  <form method="post" action="/demo/{{ draft_id }}/site/{{ li }}/new">
+    <label>Title *</label>
+    <input name="Title" required autofocus>
+    {% for f in form_fields %}
+    <label>{{ f.name }}</label>
+    {% if f.kind == 'choice' %}
+    <select name="{{ f.name }}">
+      <option value=""></option>
+      {% for ch in f.choices %}<option>{{ ch }}</option>{% endfor %}
+    </select>
+    {% elif f.kind == 'date' %}
+    <input type="date" name="{{ f.name }}">
+    {% elif f.kind == 'number' %}
+    <input type="number" step="any" name="{{ f.name }}">
+    {% elif f.kind == 'multiline' %}
+    <textarea name="{{ f.name }}" rows="2"></textarea>
+    {% else %}
+    <input name="{{ f.name }}">
+    {% endif %}
+    {% endfor %}
+    <button class="save" type="submit">Save</button>
+    <div class="hint">Dropdowns only offer the clean values — free-text statuses are impossible.
+      In the real list this is the same form, plus required-field and validation rules.</div>
+  </form>
+</div>
+
+<script>
+function openNew(){
+  document.getElementById('panel').classList.remove('open');
+  document.getElementById('newpanel').classList.add('open');
+}
+const GREEN=["completed","delivered","done","approved","pass","resolved","active","yes"],
+      AMBER=["progress","pending","sent","review","setup","onboarding","mitigating","follow"],
+      RED=["rework","blocked","fail","rejected","open","at risk","not started","no"];
+function recolor(sel){
+  const v = sel.value.toLowerCase();
+  sel.className = "pill " + (GREEN.some(w=>v.includes(w)) ? "g" :
+    AMBER.some(w=>v.includes(w)) ? "a" : RED.some(w=>v.includes(w)) ? "r" : "b");
+}
+function openPanel(fields){
+  document.getElementById('newpanel').classList.remove('open');
+  document.getElementById("p-title").textContent = fields.Title || "(item)";
+  const div = document.getElementById("p-fields");
+  div.innerHTML = "";
+  for (const [k, v] of Object.entries(fields)) {
+    if (k === "Title") continue;
+    const f = document.createElement("div");
+    f.className = "field";
+    f.innerHTML = "<label></label><span></span>";
+    f.querySelector("label").textContent = k;
+    f.querySelector("span").textContent = v;
+    div.appendChild(f);
+  }
+  document.getElementById("panel").classList.add("open");
+}
+</script>
+</body>
+</html>

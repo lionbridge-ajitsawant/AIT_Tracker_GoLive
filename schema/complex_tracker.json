@@ -1,0 +1,84 @@
+{
+  "project": "Standard Tracker (Complex template)",
+  "serviceType": "Annotation",
+  "templateInfo": {
+    "kind": "project",
+    "friendlyName": "Annotation / Data project (Complex)",
+    "blurb": "Pre-pilot qualification and annotation production with QA-candidate tracking. For larger annotation/data projects.",
+    "lists": "Pre-Pilot, Annotation"
+  },
+  "normalize": {},
+  "lists": [
+    {
+      "displayName": "Pre-Pilot",
+      "description": "Pre-pilot qualification per partner. Replaces the Pre-Pilot sheet. Choice values come from the template's Dropdowns sheet.",
+      "source": {
+        "sheet": "Pre-Pilot",
+        "firstDataRow": 2,
+        "titleCol": 0,
+        "requireAny": [0],
+        "map": [
+          [1, "CDBID"], [2, "AppenID"], [3, "Email"], [4, "Language"],
+          [5, "HUStatus"], [6, "HOStatus"], [7, "DeadlineFromVendor"],
+          [8, "Comments"], [9, "DeadlineToCustomer"], [10, "TMSJobName"],
+          [11, "TMSJobStatus"], [12, "PrePilotScore"], [13, "FeedbackShared"],
+          [14, "ScheduleShared"], [15, "TimeSpent"], [16, "POID"],
+          [17, "QACandidate"], [18, "QACandidateStatus"]
+        ]
+      },
+      "columns": [
+        { "name": "CDBID", "text": {} },
+        { "name": "AppenID", "text": {} },
+        { "name": "Email", "text": {} },
+        { "name": "Language", "indexed": true, "text": {} },
+        { "name": "HUStatus", "indexed": true, "choice": { "allowTextEntry": true, "choices": ["Sent", "Accepted", "Rejected", "Follow up", "No reply"], "displayAs": "dropDownMenu" } },
+        { "name": "HOStatus", "choice": { "allowTextEntry": true, "choices": ["Sent", "Accepted", "Rejected", "Follow up", "No reply"], "displayAs": "dropDownMenu" } },
+        { "name": "DeadlineFromVendor", "dateTime": { "format": "dateOnly" } },
+        { "name": "Comments", "text": { "allowMultipleLines": true, "appendChangesToExistingText": true } },
+        { "name": "DeadlineToCustomer", "dateTime": { "format": "dateOnly" } },
+        { "name": "TMSJobName", "text": {} },
+        { "name": "TMSJobStatus", "indexed": true, "choice": { "allowTextEntry": true, "choices": ["Creator_HO", "LL_QA", "Creator_Rework", "Delivery", "Completed"], "displayAs": "dropDownMenu" } },
+        { "name": "PrePilotScore", "number": { "decimalPlaces": "automatic" } },
+        { "name": "FeedbackShared", "choice": { "allowTextEntry": true, "choices": ["Yes", "No"], "displayAs": "dropDownMenu" } },
+        { "name": "ScheduleShared", "choice": { "allowTextEntry": true, "choices": ["Yes", "No"], "displayAs": "dropDownMenu" } },
+        { "name": "TimeSpent", "number": { "decimalPlaces": "automatic" } },
+        { "name": "POID", "text": {} },
+        { "name": "QACandidate", "choice": { "allowTextEntry": true, "choices": ["Yes", "No"], "displayAs": "dropDownMenu" } },
+        { "name": "QACandidateStatus", "choice": { "allowTextEntry": true, "choices": ["Offered", "Rejected", "Accepted - details sent, TMS added", "Follow up", "No reply"], "displayAs": "dropDownMenu" } }
+      ]
+    },
+    {
+      "displayName": "Annotation",
+      "description": "Annotation production per partner. Replaces the Annotation sheet.",
+      "source": {
+        "sheet": "Annotation",
+        "firstDataRow": 2,
+        "titleCol": 0,
+        "requireAny": [0],
+        "map": [
+          [1, "CDBID"], [2, "AppenID"], [3, "Email"], [4, "Language"],
+          [5, "GeneralStatus"], [6, "CommentsQuiz"], [7, "HUStatus"],
+          [8, "HOStatus"], [9, "DeadlineFromVendor"], [10, "Comments"],
+          [11, "DeadlineToCustomer"], [12, "NumberOfTasks"], [13, "TimeSpent"],
+          [14, "POID"]
+        ]
+      },
+      "columns": [
+        { "name": "CDBID", "text": {} },
+        { "name": "AppenID", "text": {} },
+        { "name": "Email", "text": {} },
+        { "name": "Language", "indexed": true, "text": {} },
+        { "name": "GeneralStatus", "indexed": true, "choice": { "allowTextEntry": true, "choices": ["To be contacted", "Quiz accepted", "Rejected temporary", "Rejected", "No reply"], "displayAs": "dropDownMenu" } },
+        { "name": "CommentsQuiz", "text": { "allowMultipleLines": true } },
+        { "name": "HUStatus", "choice": { "allowTextEntry": true, "choices": ["Sent", "Accepted", "Rejected", "Follow up", "No reply"], "displayAs": "dropDownMenu" } },
+        { "name": "HOStatus", "choice": { "allowTextEntry": true, "choices": ["Sent", "Accepted", "Rejected", "Follow up", "No reply"], "displayAs": "dropDownMenu" } },
+        { "name": "DeadlineFromVendor", "dateTime": { "format": "dateOnly" } },
+        { "name": "Comments", "text": { "allowMultipleLines": true, "appendChangesToExistingText": true } },
+        { "name": "DeadlineToCustomer", "dateTime": { "format": "dateOnly" } },
+        { "name": "NumberOfTasks", "number": { "decimalPlaces": "none" } },
+        { "name": "TimeSpent", "number": { "decimalPlaces": "automatic" } },
+        { "name": "POID", "text": {} }
+      ]
+    }
+  ]
+}
