@@ -7,14 +7,28 @@ import requests
 from auth import GRAPH, get_token
 
 
+class _BearerAuth(requests.auth.AuthBase):
+    """Attaches a fresh Authorization header to every request instead of one
+    baked in at session creation. get_token() is backed by MSAL's own token
+    cache, so this is a cheap cache hit until the token nears its ~1h expiry -
+    at which point MSAL transparently fetches a new one. Keeps long-running
+    migrations from outliving a token that was only valid at session start."""
+
+    def __call__(self, r):
+        r.headers["Authorization"] = f"Bearer {get_token()}"
+        return r
+
+
 def make_session() -> requests.Session:
+    get_token()  # fail fast here with a clear error if auth is misconfigured
     s = requests.Session()
-    s.headers["Authorization"] = f"Bearer {get_token()}"
+    s.auth = _BearerAuth()
     return s
 
 
 def graph_request(session, method, url, max_retries=6, **kwargs):
-    """Request with Retry-After handling for 429/503 throttling."""
+    """Request with Retry-After handling for 429/503 throttling, and one retry
+    on 401 (the auth hook attaches a fresh token on the retry)."""
     if url.startswith("/"):
         url = GRAPH + url
     for attempt in range(max_retries):
@@ -23,6 +37,9 @@ def graph_request(session, method, url, max_retries=6, **kwargs):
             wait = int(r.headers.get("Retry-After", "5"))
             print(f"  throttled ({r.status_code}), waiting {wait}s ...")
             time.sleep(wait)
+            continue
+        if r.status_code == 401 and attempt == 0:
+            print("  401 from Graph - re-authenticating and retrying once ...")
             continue
         return r
     return r

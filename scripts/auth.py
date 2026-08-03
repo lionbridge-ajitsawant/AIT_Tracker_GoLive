@@ -24,24 +24,51 @@ CLIENT_SECRET = os.getenv("CLIENT_SECRET", "")
 AUTHORITY = f"https://login.microsoftonline.com/{TENANT_ID}"
 CACHE_FILE = Path(__file__).resolve().parent.parent / ".msal_token_cache.bin"
 
+# One MSAL app instance per process, reused across every get_token() call. MSAL
+# keeps an in-memory token cache on the instance and (since MSAL 1.23) checks it
+# before calling out to Entra, so repeated calls are cheap and automatically
+# return a fresh token once the cached one is near/past its ~1h expiry - no
+# separate refresh-on-401 logic needed. A fresh instance per call (the old
+# behaviour) defeated this: an empty cache every time meant callers that baked
+# a token in once (e.g. a long migration's session) just kept using a token
+# that eventually expired underneath them.
+_confidential_app = None
+_public_app = None
+_public_cache = None
+
+
+def _get_confidential_app():
+    global _confidential_app
+    if _confidential_app is None:
+        _confidential_app = msal.ConfidentialClientApplication(
+            CLIENT_ID, authority=AUTHORITY, client_credential=CLIENT_SECRET
+        )
+    return _confidential_app
+
+
+def _get_public_app():
+    global _public_app, _public_cache
+    if _public_app is None:
+        _public_cache = msal.SerializableTokenCache()
+        if CACHE_FILE.exists():
+            _public_cache.deserialize(CACHE_FILE.read_text())
+        atexit.register(
+            lambda: CACHE_FILE.write_text(_public_cache.serialize())
+            if _public_cache.has_state_changed else None
+        )
+        _public_app = msal.PublicClientApplication(CLIENT_ID, authority=AUTHORITY, token_cache=_public_cache)
+    return _public_app
+
 
 def get_token() -> str:
     if not TENANT_ID or not CLIENT_ID:
         sys.exit("TENANT_ID / CLIENT_ID missing - copy .env.example to .env and fill it in.")
 
     if CLIENT_SECRET:
-        app = msal.ConfidentialClientApplication(
-            CLIENT_ID, authority=AUTHORITY, client_credential=CLIENT_SECRET
-        )
+        app = _get_confidential_app()
         result = app.acquire_token_for_client(scopes=["https://graph.microsoft.com/.default"])
     else:
-        cache = msal.SerializableTokenCache()
-        if CACHE_FILE.exists():
-            cache.deserialize(CACHE_FILE.read_text())
-        atexit.register(
-            lambda: CACHE_FILE.write_text(cache.serialize()) if cache.has_state_changed else None
-        )
-        app = msal.PublicClientApplication(CLIENT_ID, authority=AUTHORITY, token_cache=cache)
+        app = _get_public_app()
         scopes = ["Sites.ReadWrite.All"]
         result = None
         accounts = app.get_accounts()

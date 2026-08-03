@@ -7,8 +7,11 @@
   :root { --accent:#0b6bcb; --bg:#f4f6f8; --card:#fff; --line:#dde3ea; }
   * { box-sizing:border-box; }
   body { font-family:"Segoe UI",system-ui,sans-serif; background:var(--bg); margin:0; color:#1b2733; }
-  header { background:var(--accent); color:#fff; padding:14px 28px; font-size:18px; font-weight:600; }
+  header { background:var(--accent); color:#fff; padding:14px 28px; font-size:18px; font-weight:600;
+           display:flex; align-items:baseline; }
   header span { font-weight:300; opacity:.85; font-size:14px; margin-left:10px; }
+  header .who { margin-left:auto; font-size:12.5px; font-weight:400; opacity:.9; }
+  header .who a { color:#fff; }
   main { max-width:1080px; margin:24px auto; padding:0 20px; }
   .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:22px 26px; margin-bottom:20px; }
   h2 { margin-top:0; font-size:17px; }
@@ -36,7 +39,9 @@
 </style>
 </head>
 <body>
-<header>AIT Tracker Wizard <span>Excel tracker &rarr; SharePoint Lists, self-service</span></header>
+<header>AIT Tracker Wizard <span>Excel tracker &rarr; SharePoint Lists, self-service</span>
+{% if current_user %}<span class="who">Signed in as {{ current_user }} &middot; <a href="/.auth/logout">Sign out</a></span>{% endif %}
+</header>
 <main>
 {% block content %}{% endblock %}
 </main>

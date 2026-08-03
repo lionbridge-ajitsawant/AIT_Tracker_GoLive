@@ -44,18 +44,25 @@ work. PMs never see or hold the secret.
 ## Step 1 — Prep (no code changes needed; just know these)
 - In the cloud there is **no `.env`** — config comes from **App Settings**
   (environment variables). The code already reads env vars, so nothing to change.
-- The wizard runs provisioning/migration on a **background thread** and the page
-  polls for progress, so requests are short — but keep **one worker** so all jobs
-  stay in one process (startup command below does this).
+- Drafts and running-job progress live in a **SQLite file** (`webapp/store.py`),
+  not in process memory, so any worker/thread can serve any request — a PM's
+  progress page can be polled by a different worker than the one running their
+  job. Point it at persistent storage outside the deployed code folder with the
+  `WIZARD_DB_PATH` app setting (Step 3), so redeploys never touch it.
+- The wizard runs provisioning/migration on a **background thread**; the page
+  polls for progress. `--workers` can be >1 now (state is shared via SQLite,
+  not per-process memory) — just keep it to **one App Service instance** (see
+  *Scale*, below): SQLite is a single file, so it doesn't hand off cleanly
+  across multiple scaled-out instances.
 - The site URL is entered per-create in the wizard form, so `SITE_HOSTNAME/PATH`
   are optional in the cloud.
 
 **Startup command** (set in Step 2 / portal → Configuration → General settings):
 ```
-gunicorn --chdir webapp --workers 1 --threads 8 --timeout 600 --bind=0.0.0.0:8000 app:app
+gunicorn --chdir webapp --workers 2 --threads 8 --timeout 600 --bind=0.0.0.0:8000 app:app
 ```
 (App Service's Python image provides gunicorn; `--chdir webapp` points it at
-`app.py`. One worker + threads keeps the in-memory job tracker consistent.)
+`app.py`.)
 
 ---
 
@@ -90,6 +97,7 @@ Add:
 | `CLIENT_SECRET` | the backend app secret value |
 | `WEBSITES_PORT` | `8000` |
 | `SCM_DO_BUILD_DURING_DEPLOYMENT` | `true` |
+| `WIZARD_DB_PATH` | `/home/data/state.db` |
 
 **Better for the secret: Azure Key Vault.** Put the secret in a Key Vault and set
 `CLIENT_SECRET` to a Key Vault reference:
@@ -114,7 +122,12 @@ Portal → your App Service → **Settings → Authentication → Add identity p
 - Unauthenticated requests: **HTTP 302 redirect to log in** (browser app)
 - Token store: **On** → Add.
 
-Now hitting the URL forces a Lionbridge sign-in before the wizard loads.
+Now hitting the URL forces a Lionbridge sign-in before the wizard loads. The
+wizard already reads the `X-MS-CLIENT-PRINCIPAL-NAME` header Easy Auth injects:
+it shows "Signed in as ..." in the header with a sign-out link, pre-fills the
+PM name on the create screen, and scopes each draft/job to the PM who created
+it (another signed-in PM opening the link gets bounced home). None of that
+needs extra setup — it activates automatically once this step is done.
 
 ---
 
@@ -143,15 +156,20 @@ Teams tab.
 ---
 
 ## Notes & options
-- **Scale:** keep it single-instance (or leave ARR affinity on) because job
-  progress is tracked in memory. A handful of PMs is well within one B1 instance.
+- **Scale:** keep it single-instance. Draft/job state now survives worker
+  restarts and is shared across the instance's own workers/threads via SQLite
+  (`WIZARD_DB_PATH`), which is what let `--workers` go above 1 — but SQLite is
+  still one file, so it doesn't hand off cleanly if you scale out to *multiple*
+  instances. A handful of PMs is well within one B1 instance; if you outgrow
+  that, move `webapp/store.py` to Azure SQL/Postgres before scaling out.
+- **Token lifetime:** the Graph app-only token used for provisioning/migration
+  now refreshes itself automatically (MSAL's cache is reused across calls
+  instead of being rebuilt empty each time) — no action needed even for very
+  long migrations.
 - **Uploads:** the wizard writes uploaded workbooks under `/home` (persistent on
   App Service). They're transient working files; clear occasionally if you like.
 - **Custom domain:** map `trackers.lionbridge.com` (or similar) in *Custom domains*
   if you want a friendlier URL than `*.azurewebsites.net`.
-- **Nice touch (optional code):** App Service passes the signed-in user in the
-  `X-MS-CLIENT-PRINCIPAL-NAME` header — the wizard could read it to pre-fill the
-  PM name on the create screen so they don't type it. Tell me if you want this wired.
 - **Updates:** to push new code later, redeploy (Option A/B). App Settings and the
   auth config persist across deploys.
 - **Rollback:** App Service keeps deployment history; you can swap back, or use a

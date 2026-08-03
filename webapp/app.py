@@ -18,6 +18,7 @@ import json
 import re
 import sys
 import threading
+import time
 import uuid
 from contextlib import redirect_stdout
 from pathlib import Path
@@ -33,6 +34,7 @@ import analyze  # noqa: E402
 import migrate  # noqa: E402
 import provision  # noqa: E402
 from graph_client import find_list, graph_request, make_session  # noqa: E402
+from store import get_draft, get_job, init_db, set_draft, set_job  # noqa: E402
 
 app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = 64 * 1024 * 1024  # largest tracker seen is ~5 MB
@@ -40,11 +42,66 @@ UPLOADS = ROOT / "webapp" / "uploads"
 GENERATED = ROOT / "schema" / "generated"
 UPLOADS.mkdir(parents=True, exist_ok=True)
 GENERATED.mkdir(parents=True, exist_ok=True)
-
-DRAFTS = {}   # draft_id -> {"schema": dict, "source": str}
-JOBS = {}     # job_id   -> {"log": [...], "done": bool, "ok": bool}
+init_db()
 
 TYPE_OPTIONS = ["text", "multiline", "choice", "date", "number"]
+
+
+def current_user():
+    """Signed-in PM's name, from the header Azure App Service Authentication
+    (Easy Auth) injects once Microsoft sign-in is enabled - empty when running
+    locally with no auth layer in front."""
+    return request.headers.get("X-MS-CLIENT-PRINCIPAL-NAME", "")
+
+
+@app.context_processor
+def inject_current_user():
+    return {"current_user": current_user()}
+
+
+def owned_draft(draft_id):
+    """Fetch a draft and enforce it belongs to the signed-in PM.
+
+    Returns (draft, None) when usable, or (None, redirect) when missing or
+    owned by someone else. With no identity header (local dev, no Easy Auth
+    in front) ownership isn't enforced, matching today's single-user usage.
+    """
+    draft = get_draft(draft_id)
+    if not draft:
+        return None, redirect(url_for("index"))
+    me = current_user()
+    if me and draft.get("owner") and draft["owner"] != me:
+        return None, redirect(url_for("index"))
+    return draft, None
+
+
+# Job execution is a background thread tied to whichever worker process
+# started it; there's no queue or supervisor. If that process dies mid-job
+# (deploy, App Service recycle, crash) the thread just disappears and the
+# persisted job record is stuck at done=False forever, with the PM's browser
+# polling and spinning indefinitely. Rather than leave that silent, treat a
+# job that hasn't logged anything in this long as abandoned.
+JOB_STALE_SECONDS = 600
+
+
+def owned_job(job_id):
+    job = get_job(job_id)
+    if not job:
+        return None, {"log": ["unknown job"], "done": True, "ok": False}
+    me = current_user()
+    if me and job.get("owner") and job["owner"] != me:
+        return None, {"log": ["unknown job"], "done": True, "ok": False}
+    if not job["done"] and time.time() - job.get("updated_at", 0) > JOB_STALE_SECONDS:
+        job["log"].append(
+            "ERROR: no progress in over 10 minutes - the process running this job "
+            "likely restarted. Go back and try again; if it keeps happening, check "
+            "the site's provisioning progress directly."
+        )
+        job["done"] = True
+        job["ok"] = False
+        job["updated_at"] = time.time()
+        set_job(job_id, job)
+    return job, None
 
 
 def facet_to_type(col):
@@ -134,11 +191,12 @@ def do_analyze():
     wb_formulas.close()
 
     draft_id = uuid.uuid4().hex[:10]
-    DRAFTS[draft_id] = {
+    set_draft(draft_id, {
         "schema": {"project": src.stem, "normalize": {}, "lists": lists},
         "source": str(src),
         "skipped": skipped,
-    }
+        "owner": current_user(),
+    })
     return redirect(url_for("review", draft_id=draft_id))
 
 
@@ -151,15 +209,16 @@ def use_template():
     schema = json.loads(path.read_text(encoding="utf-8"))
     draft_id = uuid.uuid4().hex[:10]
     src = save_upload(request.files.get("workbook"))
-    DRAFTS[draft_id] = {"schema": schema, "source": str(src) if src else None, "skipped": []}
+    set_draft(draft_id, {"schema": schema, "source": str(src) if src else None, "skipped": [],
+                         "owner": current_user()})
     return redirect(url_for("review", draft_id=draft_id))
 
 
 @app.route("/review/<draft_id>")
 def review(draft_id):
-    draft = DRAFTS.get(draft_id)
-    if not draft:
-        return redirect(url_for("index"))
+    draft, err = owned_draft(draft_id)
+    if err:
+        return err
     view = []
     for li, lst in enumerate(draft["schema"]["lists"]):
         cols = []
@@ -189,9 +248,9 @@ def review(draft_id):
 
 @app.route("/save/<draft_id>", methods=["POST"])
 def save(draft_id):
-    draft = DRAFTS.get(draft_id)
-    if not draft:
-        return redirect(url_for("index"))
+    draft, err = owned_draft(draft_id)
+    if err:
+        return err
     form = request.form
     schema = draft["schema"]
     schema["project"] = form.get("project") or schema.get("project", "Project")
@@ -254,33 +313,41 @@ def save(draft_id):
     else:
         preview = [{"name": lst["displayName"], "count": 0, "sample": []} for lst in schema["lists"]]
     draft["preview"] = preview
+    set_draft(draft_id, draft)
     return redirect(url_for("launch", draft_id=draft_id))
 
 
 @app.route("/launch/<draft_id>")
 def launch(draft_id):
-    draft = DRAFTS.get(draft_id)
-    if not draft:
-        return redirect(url_for("index"))
+    draft, err = owned_draft(draft_id)
+    if err:
+        return err
     return render_template("launch.html", draft_id=draft_id,
                            project=draft["schema"].get("project", ""),
                            preview=draft.get("preview", []),
                            has_source=bool(draft.get("source")))
 
 
-def run_job(job, draft, site_url, do_migrate, pm=""):
-    log = job["log"]
+def run_job(job_id, draft, site_url, do_migrate, pm=""):
+    # seed from what /run already stored (owner, empty log) rather than starting
+    # a fresh dict, so the owner tag survives into every persisted update below
+    job = get_job(job_id) or {"log": [], "done": False, "ok": False}
+
+    def emit(msg):
+        job["log"].append(msg)
+        job["updated_at"] = time.time()
+        set_job(job_id, job)
 
     class Tee(io.TextIOBase):
         def write(self, s):
             s = s.strip()
             if s:
-                log.append(s)
+                emit(s)
             return len(s)
 
     try:
         schema = draft["schema"]
-        log.append("Signing in to Microsoft Graph ...")
+        emit("Signing in to Microsoft Graph ...")
         with redirect_stdout(Tee()):
             session = make_session()
 
@@ -293,7 +360,7 @@ def run_job(job, draft, site_url, do_migrate, pm=""):
         if not r.ok:
             raise RuntimeError(f"Site lookup failed ({r.status_code}): check the URL and permissions")
         site_id = r.json()["id"]
-        log.append(f"Site found: {site_url}")
+        emit(f"Site found: {site_url}")
 
         for spec in schema["lists"]:
             with redirect_stdout(Tee()):
@@ -319,20 +386,22 @@ def run_job(job, draft, site_url, do_migrate, pm=""):
             for spec in schema["lists"]:
                 items = migrate.extract_list(wb, spec, normalize)
                 if not items:
-                    log.append(f"{spec['displayName']}: nothing to migrate")
+                    emit(f"{spec['displayName']}: nothing to migrate")
                     continue
-                log.append(f"{spec['displayName']}: migrating {len(items)} items ...")
+                emit(f"{spec['displayName']}: migrating {len(items)} items ...")
                 with redirect_stdout(Tee()):
                     migrate.upload(session, site_id, spec["displayName"], items)
             wb.close()
 
-        log.append("DONE. Open the site and check the new lists: " + site_url)
+        emit("DONE. Open the site and check the new lists: " + site_url)
         job["ok"] = True
     except BaseException as e:  # noqa: BLE001 - report everything to the PM
-        log.append(f"ERROR: {e}")
+        emit(f"ERROR: {e}")
         job["ok"] = False
     finally:
         job["done"] = True
+        job["updated_at"] = time.time()
+        set_job(job_id, job)
 
 
 # ----------------------------------------------------------- DEMO MODE
@@ -358,9 +427,9 @@ def pill_class(value):
 
 @app.route("/demo/<draft_id>", methods=["POST"])
 def demo_create(draft_id):
-    draft = DRAFTS.get(draft_id)
-    if not draft:
-        return redirect(url_for("index"))
+    draft, err = owned_draft(draft_id)
+    if err:
+        return err
     schema = draft["schema"]
     normalize = {k.lower(): v for k, v in schema.get("normalize", {}).items()}
     demo_lists, log = [], []
@@ -384,14 +453,15 @@ def demo_create(draft_id):
     log.append("DONE. Tracker is live.")
     draft["demo_lists"] = demo_lists
     draft["demo_log"] = log
+    set_draft(draft_id, draft)
     return redirect(url_for("demo_progress", draft_id=draft_id))
 
 
 @app.route("/demo/<draft_id>/progress")
 def demo_progress(draft_id):
-    draft = DRAFTS.get(draft_id)
-    if not draft or "demo_log" not in draft:
-        return redirect(url_for("index"))
+    draft, err = owned_draft(draft_id)
+    if err or "demo_log" not in draft:
+        return err or redirect(url_for("index"))
     return render_template("demo_progress.html", draft_id=draft_id, log=draft["demo_log"],
                            project=draft["schema"].get("project", "Project"))
 
@@ -399,9 +469,9 @@ def demo_progress(draft_id):
 @app.route("/demo/<draft_id>/site")
 @app.route("/demo/<draft_id>/site/<int:li>")
 def demo_site(draft_id, li=0):
-    draft = DRAFTS.get(draft_id)
-    if not draft or "demo_lists" not in draft:
-        return redirect(url_for("index"))
+    draft, err = owned_draft(draft_id)
+    if err or "demo_lists" not in draft:
+        return err or redirect(url_for("index"))
     demo_lists = draft["demo_lists"]
     li = max(0, min(li, len(demo_lists) - 1))
     cur = demo_lists[li]
@@ -450,9 +520,9 @@ def demo_site(draft_id, li=0):
 
 @app.route("/demo/<draft_id>/site/<int:li>/new", methods=["POST"])
 def demo_new_item(draft_id, li):
-    draft = DRAFTS.get(draft_id)
-    if not draft or "demo_lists" not in draft:
-        return redirect(url_for("index"))
+    draft, err = owned_draft(draft_id)
+    if err or "demo_lists" not in draft:
+        return err or redirect(url_for("index"))
     demo_lists = draft["demo_lists"]
     li = max(0, min(li, len(demo_lists) - 1))
     spec = demo_lists[li]["spec"]
@@ -468,20 +538,22 @@ def demo_new_item(draft_id, li):
                 continue
         fields[col["name"]] = v
     demo_lists[li]["items"].insert(0, fields)
+    set_draft(draft_id, draft)
     return redirect(url_for("demo_site", draft_id=draft_id, li=li, added=1))
 
 
 @app.route("/run/<draft_id>", methods=["POST"])
 def run(draft_id):
-    draft = DRAFTS.get(draft_id)
-    if not draft:
-        return redirect(url_for("index"))
+    draft, err = owned_draft(draft_id)
+    if err:
+        return err
     site_url = request.form.get("site_url", "")
     do_migrate = bool(request.form.get("migrate"))
     pm = request.form.get("pm", "")
     job_id = uuid.uuid4().hex[:10]
-    JOBS[job_id] = {"log": [], "done": False, "ok": False}
-    t = threading.Thread(target=run_job, args=(JOBS[job_id], draft, site_url, do_migrate, pm),
+    set_job(job_id, {"log": [], "done": False, "ok": False, "owner": current_user(),
+                     "updated_at": time.time()})
+    t = threading.Thread(target=run_job, args=(job_id, draft, site_url, do_migrate, pm),
                          daemon=True)
     t.start()
     return redirect(url_for("progress", job_id=job_id))
@@ -489,12 +561,17 @@ def run(draft_id):
 
 @app.route("/progress/<job_id>")
 def progress(job_id):
+    _, err = owned_job(job_id)
+    if err:
+        return redirect(url_for("index"))
     return render_template("progress.html", job_id=job_id)
 
 
 @app.route("/progress/<job_id>/log")
 def progress_log(job_id):
-    job = JOBS.get(job_id, {"log": ["unknown job"], "done": True, "ok": False})
+    job, err = owned_job(job_id)
+    if err:
+        return err
     return {"log": job["log"], "done": job["done"], "ok": job["ok"]}
 
 

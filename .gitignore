@@ -6,3 +6,5 @@ __pycache__/
 
 webapp/uploads/
 schema/generated/
+webapp/state.db
+webapp/state.db-*
